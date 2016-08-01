@@ -35,10 +35,13 @@ poller.poll do |msg|
         next
       end
 
-      result = system('clamscan --max-filesize=100M --max-scansize=500M /tmp/target')
+      system('clamscan --max-filesize=100M --max-scansize=500M /tmp/target')
+      result = $?.exitstatus
+      log.debug "clamscan exit code = #{result}"
+
       if result == 0
         log.debug "s3://#{bucket}/#{key} was scanned without findings"
-      elsif result ==2
+      elsif result == 2
         log.debug "ClamAV had an issue and couldn't/didn't scan the file. Skipped #{key}"
       elsif result == 1
         if conf['delete']
@@ -54,11 +57,15 @@ poller.poll do |msg|
               }
             }
           )
-          s3.delete_object(
-            bucket: bucket,
-            key: key
-          )
-          log.error "s3://#{bucket}/#{key} was deleted"
+          begin
+            s3.delete_object(
+              bucket: bucket,
+              key: key
+            )
+            log.error "s3://#{bucket}/#{key} was deleted"
+          rescue Exception => ex
+            log.error "Caught #{ex.class} error calling delete_object on #{key}. De-queueing anyway." 
+          end
         else
           log.error "s3://#{bucket}/#{key} is infected"
           sns.publish(

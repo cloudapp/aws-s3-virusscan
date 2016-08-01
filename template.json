@@ -754,6 +754,13 @@
                     "/etc/awslogs/awslogs.conf"
                   ]
                 },
+                "rsyslog": {
+                  "enabled": "true",
+                  "ensureRunning": "true",
+                  "files": [
+                    "/etc/rsyslog.d/s3-virusscan.conf"
+                  ]
+                },
                 "cfn-hup": {
                   "enabled": "true",
                   "ensureRunning": "true",
