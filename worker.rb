@@ -34,9 +34,13 @@ poller.poll do |msg|
         log.debug "s3://#{bucket}/#{key} does no longer exist"
         next
       end
-      if system('clamscan /tmp/target')
+
+      result = system('clamscan /tmp/target')
+      if result == 0
         log.debug "s3://#{bucket}/#{key} was scanned without findings"
-      else
+      elsif result ==2
+        log.debug "ClamAV had an issue and couldn't/didn't scan the file. Skipped #{key}"
+      elsif result == 1
         if conf['delete']
           log.error "s3://#{bucket}/#{key} is infected, deleting..."
           sns.publish(

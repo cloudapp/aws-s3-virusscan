@@ -2,6 +2,11 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "S3 VirusScan ( https://cloudonaut.io/s3-virusscan-aws-security/ )",
   "Parameters": {
+    "GitHubArchiveURLParameter": {
+      "Description": "Full public URL of GitHub archive zip with app code",
+      "Type": "String",
+      "Default": "https://github.com/widdix/aws-s3-virusscan/archive/master.zip"
+    },
     "AutoScalingMinSizeParameter": {
       "Description": "Min Size for Auto Scaling",
       "Type": "Number",
@@ -26,7 +31,22 @@
       "Description": "Specifies the instance type of the EC2 instance",
       "Type": "String",
       "Default": "t2.micro",
-      "AllowedValues": ["t2.nano", "t2.micro", "t2.small", "t2.medium", "t2.large", "m3.medium", "m3.large", "m3.xlarge", "m3.2xlarge", "m4.large", "m4.xlarge", "m4.2xlarge", "m4.4xlarge", "m4.10xlarge"]
+      "AllowedValues": [
+        "t2.nano",
+        "t2.micro",
+        "t2.small",
+        "t2.medium",
+        "t2.large",
+        "m3.medium",
+        "m3.large",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "m4.large",
+        "m4.xlarge",
+        "m4.2xlarge",
+        "m4.4xlarge",
+        "m4.10xlarge"
+      ]
     },
     "KeyNameParameter": {
       "Description": "Provide an EC2 key pair if you want to login via SSH",
@@ -36,7 +56,10 @@
       "Description": "Automatically delete infected files",
       "Type": "String",
       "Default": "true",
-      "AllowedValues": ["true", "false"]
+      "AllowedValues": [
+        "true",
+        "false"
+      ]
     },
     "BlockDeviceMappingsParameter": {
       "Description": "The size of the volume, in gibibytes (GiBs).",
@@ -47,26 +70,61 @@
     }
   },
   "Conditions": {
-    "HasKeyNameParameter": {"Fn::Not": [{"Fn::Equals": ["", {"Ref": "KeyNameParameter"}]}]}
+    "HasKeyNameParameter": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            "",
+            {
+              "Ref": "KeyNameParameter"
+            }
+          ]
+        }
+      ]
+    }
   },
   "Mappings": {
     "RegionMap": {
-      "eu-west-1": {"AMI": "ami-31328842"},
-      "ap-southeast-1": {"AMI": "ami-e90dc68a"},
-      "ap-southeast-2": {"AMI": "ami-f2210191"},
-      "eu-central-1": {"AMI": "ami-e2df388d"},
-      "ap-northeast-2": {"AMI": "ami-6598510b"},
-      "ap-northeast-1": {"AMI": "ami-f80e0596"},
-      "us-east-1": {"AMI": "ami-08111162"},
-      "sa-east-1": {"AMI": "ami-1e159872"},
-      "us-west-1": {"AMI": "ami-1b0f7d7b"},
-      "us-west-2": {"AMI": "ami-c229c0a2"}
+      "eu-west-1": {
+        "AMI": "ami-31328842"
+      },
+      "ap-southeast-1": {
+        "AMI": "ami-e90dc68a"
+      },
+      "ap-southeast-2": {
+        "AMI": "ami-f2210191"
+      },
+      "eu-central-1": {
+        "AMI": "ami-e2df388d"
+      },
+      "ap-northeast-2": {
+        "AMI": "ami-6598510b"
+      },
+      "ap-northeast-1": {
+        "AMI": "ami-f80e0596"
+      },
+      "us-east-1": {
+        "AMI": "ami-08111162"
+      },
+      "sa-east-1": {
+        "AMI": "ami-1e159872"
+      },
+      "us-west-1": {
+        "AMI": "ami-1b0f7d7b"
+      },
+      "us-west-2": {
+        "AMI": "ami-c229c0a2"
+      }
     }
   },
   "Resources": {
     "FindingsTopic": {
       "Type": "AWS::SNS::Topic",
-      "Properties": {
+      "Properties": {},
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "578a6136-48a0-442a-be14-a7610595f02c"
+        }
       }
     },
     "ScanQueue": {
@@ -74,43 +132,85 @@
       "Properties": {
         "VisibilityTimeout": 300,
         "RedrivePolicy": {
-          "deadLetterTargetArn": {"Fn::GetAtt": ["ScanQueueDLQ", "Arn"]},
+          "deadLetterTargetArn": {
+            "Fn::GetAtt": [
+              "ScanQueueDLQ",
+              "Arn"
+            ]
+          },
           "maxReceiveCount": 3
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "634149a5-8605-4dce-8a67-8a5c50d6431b"
         }
       }
     },
     "ScanQueueFullAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
       "Properties": {
-        "AlarmActions": [{"Ref": "ScanScaleUp"}],
+        "AlarmActions": [
+          {
+            "Ref": "ScanScaleUp"
+          }
+        ],
         "ComparisonOperator": "GreaterThanThreshold",
-        "Dimensions": [{
-          "Name": "QueueName",
-          "Value": {"Fn::GetAtt": ["ScanQueue", "QueueName"]}
-        }],
+        "Dimensions": [
+          {
+            "Name": "QueueName",
+            "Value": {
+              "Fn::GetAtt": [
+                "ScanQueue",
+                "QueueName"
+              ]
+            }
+          }
+        ],
         "EvaluationPeriods": "1",
         "MetricName": "ApproximateNumberOfMessagesVisible",
         "Namespace": "AWS/SQS",
         "Period": "60",
         "Statistic": "Sum",
         "Threshold": "100"
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "e3282e5f-085b-4bba-894d-c89fb87d9816"
+        }
       }
     },
     "ScanQueueEmptyAlarm": {
       "Type": "AWS::CloudWatch::Alarm",
       "Properties": {
-        "AlarmActions": [{"Ref": "ScanScaleDown"}],
+        "AlarmActions": [
+          {
+            "Ref": "ScanScaleDown"
+          }
+        ],
         "ComparisonOperator": "LessThanOrEqualToThreshold",
-        "Dimensions": [{
-          "Name": "QueueName",
-          "Value": {"Fn::GetAtt": ["ScanQueue", "QueueName"]}
-        }],
+        "Dimensions": [
+          {
+            "Name": "QueueName",
+            "Value": {
+              "Fn::GetAtt": [
+                "ScanQueue",
+                "QueueName"
+              ]
+            }
+          }
+        ],
         "EvaluationPeriods": "1",
         "MetricName": "ApproximateNumberOfMessagesVisible",
         "Namespace": "AWS/SQS",
         "Period": "60",
         "Statistic": "Sum",
         "Threshold": "0"
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "8193889c-000c-41f1-825c-c4c54c620bd4"
+        }
       }
     },
     "ScanQueuePolicy": {
@@ -118,24 +218,45 @@
       "Properties": {
         "PolicyDocument": {
           "Version": "2008-10-17",
-          "Statement": [{
-            "Effect": "Allow",
-            "Principal": {
-              "AWS":"*"  
-            },
-            "Action": [
-              "SQS:SendMessage"
-            ],
-            "Resource": {"Fn::GetAtt": ["ScanQueue", "Arn"]}
-          }]
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "*"
+              },
+              "Action": [
+                "SQS:SendMessage"
+              ],
+              "Resource": {
+                "Fn::GetAtt": [
+                  "ScanQueue",
+                  "Arn"
+                ]
+              }
+            }
+          ]
         },
-        "Queues": [{"Ref": "ScanQueue"}]
+        "Queues": [
+          {
+            "Ref": "ScanQueue"
+          }
+        ]
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "f154b662-7e6f-45ae-add4-2d48b973fb2a"
+        }
       }
     },
     "ScanQueueDLQ": {
       "Type": "AWS::SQS::Queue",
       "Properties": {
         "MessageRetentionPeriod": 1209600
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "5654a679-0b07-45c2-8739-b2b5930be956"
+        }
       }
     },
     "ScanQueueDLQAlarm": {
@@ -144,35 +265,70 @@
         "AlarmDescription": "Alarm if dead letter queue has messages",
         "Namespace": "AWS/SQS",
         "MetricName": "ApproximateNumberOfMessagesVisible",
-        "Dimensions": [{
-          "Name": "QueueName",
-          "Value": {"Fn::GetAtt": ["ScanQueueDLQ", "QueueName"]}
-        }],
+        "Dimensions": [
+          {
+            "Name": "QueueName",
+            "Value": {
+              "Fn::GetAtt": [
+                "ScanQueueDLQ",
+                "QueueName"
+              ]
+            }
+          }
+        ],
         "Statistic": "Sum",
         "Period": "60",
         "EvaluationPeriods": "1",
         "Threshold": "1",
         "ComparisonOperator": "GreaterThanOrEqualToThreshold",
-        "AlarmActions": [{"Ref": "FindingsTopic"}]
+        "AlarmActions": [
+          {
+            "Ref": "FindingsTopic"
+          }
+        ]
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "ddf6e37b-ec65-4916-b130-d0c34203dd66"
+        }
       }
     },
     "ScanAutoScalingGroup": {
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties": {
-        "DesiredCapacity": {"Ref": "AutoScalingMinSizeParameter"},
-        "LaunchConfigurationName": {"Ref": "ScanLaunchConfiguration"},
-        "MaxSize": {"Ref": "AutoScalingMaxSizeParameter"},
-        "MinSize": {"Ref": "AutoScalingMinSizeParameter"},
-        "VPCZoneIdentifier": {"Ref": "SubnetsParameter"},
-        "Tags": [{
-          "Key": "Name",
-          "Value": {"Ref":"AWS::StackName"},
-          "PropagateAtLaunch": true
-        }]
+        "DesiredCapacity": {
+          "Ref": "AutoScalingMinSizeParameter"
+        },
+        "LaunchConfigurationName": {
+          "Ref": "ScanLaunchConfiguration"
+        },
+        "MaxSize": {
+          "Ref": "AutoScalingMaxSizeParameter"
+        },
+        "MinSize": {
+          "Ref": "AutoScalingMinSizeParameter"
+        },
+        "VPCZoneIdentifier": {
+          "Ref": "SubnetsParameter"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "AWS::StackName"
+            },
+            "PropagateAtLaunch": true
+          }
+        ]
       },
       "CreationPolicy": {
         "ResourceSignal": {
           "Timeout": "PT20M"
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "a4615704-62d5-4f70-96dd-31c62e3393c7"
         }
       }
     },
@@ -180,25 +336,48 @@
       "Type": "AWS::AutoScaling::ScalingPolicy",
       "Properties": {
         "AdjustmentType": "ChangeInCapacity",
-        "AutoScalingGroupName": {"Ref": "ScanAutoScalingGroup"},
+        "AutoScalingGroupName": {
+          "Ref": "ScanAutoScalingGroup"
+        },
         "Cooldown": "300",
-        "ScalingAdjustment": 1
+        "ScalingAdjustment": 3
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "53edbab5-9aff-4151-be03-1ac35d9926be"
+        }
       }
     },
     "ScanScaleDown": {
       "Type": "AWS::AutoScaling::ScalingPolicy",
       "Properties": {
         "AdjustmentType": "ChangeInCapacity",
-        "AutoScalingGroupName": {"Ref": "ScanAutoScalingGroup"},
+        "AutoScalingGroupName": {
+          "Ref": "ScanAutoScalingGroup"
+        },
         "Cooldown": "300",
-        "ScalingAdjustment": -1
+        "ScalingAdjustment": 1
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "8568fa23-e824-49a7-a83e-b44dbf5f88db"
+        }
       }
     },
     "ScanInstanceProfile": {
       "Type": "AWS::IAM::InstanceProfile",
       "Properties": {
         "Path": "/",
-        "Roles": [{"Ref": "ScanIAMRole"}]
+        "Roles": [
+          {
+            "Ref": "ScanIAMRole"
+          }
+        ]
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "2132ec7d-1e12-4c61-a331-f4201261fc8e"
+        }
       }
     },
     "ScanIAMRole": {
@@ -206,77 +385,108 @@
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
-          "Statement": [{
-            "Effect": "Allow",
-            "Principal": {
-              "Service": ["ec2.amazonaws.com"]
-            },
-            "Action": ["sts:AssumeRole"]
-          }]
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
         },
         "Path": "/",
-        "Policies": [{
-          "PolicyName": "s3",
-          "PolicyDocument": {
-            "Version": "2012-10-17",
-            "Statement": [{
-              "Effect": "Allow",
-              "Action": [
-                "s3:GetObject*",
-                "s3:DeleteObject*"
-              ],
-              "Resource": [
-                "*"
+        "Policies": [
+          {
+            "PolicyName": "s3",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject*",
+                    "s3:DeleteObject*"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                }
               ]
-            }]
-          }
-        }, {
-          "PolicyName": "sqs",
-          "PolicyDocument": {
-            "Version": "2012-10-17",
-            "Statement": [{
-              "Effect": "Allow",
-              "Action": [
-                "sqs:DeleteMessage",
-                "sqs:ReceiveMessage"
-              ],
-              "Resource": [
-                {"Fn::GetAtt": ["ScanQueue", "Arn"]}
+            }
+          },
+          {
+            "PolicyName": "sqs",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "sqs:DeleteMessage",
+                    "sqs:ReceiveMessage"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "ScanQueue",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                }
               ]
-            }]
-          }
-        }, {
-          "PolicyName": "sns",
-          "PolicyDocument": {
-            "Version": "2012-10-17",
-            "Statement": [{
-              "Effect": "Allow",
-              "Action": [
-                "sns:Publish"
-              ],
-              "Resource": [
-                {"Ref": "FindingsTopic"}
+            }
+          },
+          {
+            "PolicyName": "sns",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "sns:Publish"
+                  ],
+                  "Resource": [
+                    {
+                      "Ref": "FindingsTopic"
+                    }
+                  ]
+                }
               ]
-            }]
-          }
-        }, {
-          "PolicyName": "logs",
-          "PolicyDocument":{
-            "Version": "2012-10-17",
-            "Statement": [{
-              "Effect": "Allow",
-              "Action": [
-                "logs:CreateLogGroup",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents",
-                "logs:DescribeLogStreams"
-              ],
-              "Resource": [
-                "arn:aws:logs:*:*:*"
+            }
+          },
+          {
+            "PolicyName": "logs",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents",
+                    "logs:DescribeLogStreams"
+                  ],
+                  "Resource": [
+                    "arn:aws:logs:*:*:*"
+                  ]
+                }
               ]
-            }]
+            }
           }
-        }]
+        ]
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "ae3c2af6-77aa-4448-ac20-8615d663a7e3"
+        }
       }
     },
     "ScanLaunchConfiguration": {
@@ -292,93 +502,215 @@
                 "awslogs": []
               },
               "rubygems": {
-                "aws-sdk": ["2.2.29"],
-                "daemons": ["1.2.3"]
+                "aws-sdk": [
+                  "2.2.29"
+                ],
+                "daemons": [
+                  "1.2.3"
+                ]
               }
             },
             "sources": {
-              "/opt": "https://github.com/widdix/aws-s3-virusscan/archive/master.zip"
+              "/opt": {
+                "Ref": "GitHubArchiveURLParameter"
+              }
             },
             "files": {
+              "/etc/rsyslog.d/s3-virusscan.conf": {
+                "content": ":programname, isequal, \"s3-virusscan\"   /var/log/s3-virusscan\n",
+                "mode": "000644",
+                "owner": "root",
+                "group": "root"
+              },
               "/etc/awslogs/awslogs.conf": {
-                "content": {"Fn::Join": ["", [
-                  "[general]", "\n",
-                  "state_file = /var/lib/awslogs/agent-state", "\n",
-                  "\n",
-                  "[/var/log/messages]", "\n",
-                  "datetime_format = %b %d %H:%M:%S", "\n",
-                  "file = /var/log/messages", "\n",
-                  "buffer_duration = 5000", "\n",
-                  "log_stream_name = {instance_id}", "\n",
-                  "initial_position = start_of_file", "\n",
-                  "log_group_name = /var/log/messages", "\n",
-                  "\n",
-                  "[/var/log/secure]", "\n",
-                  "datetime_format = %b %d %H:%M:%S", "\n",
-                  "file = /var/log/secure", "\n",
-                  "buffer_duration = 5000", "\n",
-                  "log_stream_name = {instance_id}", "\n",
-                  "initial_position = start_of_file", "\n",
-                  "log_group_name = /var/log/secure", "\n",
-                  "\n",
-                  "[/var/log/cron]", "\n",
-                  "datetime_format = %b %d %H:%M:%S", "\n",
-                  "file = /var/log/cron", "\n",
-                  "buffer_duration = 5000", "\n",
-                  "log_stream_name = {instance_id}", "\n",
-                  "initial_position = start_of_file", "\n",
-                  "log_group_name = /var/log/cron", "\n",
-                  "\n",
-                  "[/var/log/cloud-init.log]", "\n",
-                  "datetime_format = %b %d %H:%M:%S", "\n",
-                  "file = /var/log/cloud-init.log", "\n",
-                  "buffer_duration = 5000", "\n",
-                  "log_stream_name = {instance_id}", "\n",
-                  "initial_position = start_of_file", "\n",
-                  "log_group_name = /var/log/cloud-init.log", "\n",
-                  "\n",
-                  "[/var/log/cfn-init.log]", "\n",
-                  "datetime_format = %Y-%m-%d %H:%M:%S", "\n",
-                  "file = /var/log/cfn-init.log", "\n",
-                  "buffer_duration = 5000", "\n",
-                  "log_stream_name = {instance_id}", "\n",
-                  "initial_position = start_of_file", "\n",
-                  "log_group_name = /var/log/cfn-init.log", "\n",
-                  "\n"
-                ]]},
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[general]",
+                      "\n",
+                      "state_file = /var/lib/awslogs/agent-state",
+                      "\n",
+                      "\n",
+                      "[/var/log/messages]",
+                      "\n",
+                      "datetime_format = %b %d %H:%M:%S",
+                      "\n",
+                      "file = /var/log/messages",
+                      "\n",
+                      "buffer_duration = 5000",
+                      "\n",
+                      "log_stream_name = {instance_id}",
+                      "\n",
+                      "initial_position = start_of_file",
+                      "\n",
+                      "log_group_name = /var/log/messages",
+                      "\n",
+                      "\n",
+                      "[/var/log/s3-virusscan]",
+                      "\n",
+                      "datetime_format = %b %d %H:%M:%S",
+                      "\n",
+                      "file = /var/log/s3-virusscan",
+                      "\n",
+                      "buffer_duration = 5000",
+                      "\n",
+                      "log_stream_name = {instance_id}",
+                      "\n",
+                      "initial_position = start_of_file",
+                      "\n",
+                      "log_group_name = /var/log/s3-virusscan",
+                      "\n",
+                      "\n",
+                      "[/var/log/secure]",
+                      "\n",
+                      "datetime_format = %b %d %H:%M:%S",
+                      "\n",
+                      "file = /var/log/secure",
+                      "\n",
+                      "buffer_duration = 5000",
+                      "\n",
+                      "log_stream_name = {instance_id}",
+                      "\n",
+                      "initial_position = start_of_file",
+                      "\n",
+                      "log_group_name = /var/log/secure",
+                      "\n",
+                      "\n",
+                      "[/var/log/cron]",
+                      "\n",
+                      "datetime_format = %b %d %H:%M:%S",
+                      "\n",
+                      "file = /var/log/cron",
+                      "\n",
+                      "buffer_duration = 5000",
+                      "\n",
+                      "log_stream_name = {instance_id}",
+                      "\n",
+                      "initial_position = start_of_file",
+                      "\n",
+                      "log_group_name = /var/log/cron",
+                      "\n",
+                      "\n",
+                      "[/var/log/cloud-init.log]",
+                      "\n",
+                      "datetime_format = %b %d %H:%M:%S",
+                      "\n",
+                      "file = /var/log/cloud-init.log",
+                      "\n",
+                      "buffer_duration = 5000",
+                      "\n",
+                      "log_stream_name = {instance_id}",
+                      "\n",
+                      "initial_position = start_of_file",
+                      "\n",
+                      "log_group_name = /var/log/cloud-init.log",
+                      "\n",
+                      "\n",
+                      "[/var/log/cfn-init.log]",
+                      "\n",
+                      "datetime_format = %Y-%m-%d %H:%M:%S",
+                      "\n",
+                      "file = /var/log/cfn-init.log",
+                      "\n",
+                      "buffer_duration = 5000",
+                      "\n",
+                      "log_stream_name = {instance_id}",
+                      "\n",
+                      "initial_position = start_of_file",
+                      "\n",
+                      "log_group_name = /var/log/cfn-init.log",
+                      "\n",
+                      "\n"
+                    ]
+                  ]
+                },
                 "mode": "000644",
                 "owner": "root",
                 "group": "root"
               },
               "/opt/aws-s3-virusscan-master/s3-virusscan.conf": {
-                "content": {"Fn::Join": ["", [
-                  "delete: ", {"Ref": "DeleteInfectedFilesParameter"}, "\n",
-                  "region: ", {"Ref": "AWS::Region"}, "\n",
-                  "queue: ", {"Ref": "ScanQueue"}, "\n",
-                  "topic: ", {"Ref": "FindingsTopic"}, "\n"
-                ]]},
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "delete: ",
+                      {
+                        "Ref": "DeleteInfectedFilesParameter"
+                      },
+                      "\n",
+                      "region: ",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "\n",
+                      "queue: ",
+                      {
+                        "Ref": "ScanQueue"
+                      },
+                      "\n",
+                      "topic: ",
+                      {
+                        "Ref": "FindingsTopic"
+                      },
+                      "\n"
+                    ]
+                  ]
+                },
                 "mode": "000644",
                 "owner": "root",
                 "group": "root"
               },
               "/etc/cfn/cfn-hup.conf": {
-                "content": {"Fn::Join": ["", [
-                  "[main]", "\n",
-                  "stack=", {"Ref": "AWS::StackId"}, "\n",
-                  "region=", {"Ref": "AWS::Region"}, "\n"
-                ]]},
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[main]",
+                      "\n",
+                      "stack=",
+                      {
+                        "Ref": "AWS::StackId"
+                      },
+                      "\n",
+                      "region=",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "\n"
+                    ]
+                  ]
+                },
                 "mode": "000400",
                 "owner": "root",
                 "group": "root"
               },
               "/etc/cfn/hooks.d/cfn-auto-reloader.conf": {
-                "content": {"Fn::Join": ["", [
-                  "[cfn-auto-reloader-hook]", "\n",
-                  "triggers=post.update", "\n",
-                  "path=Resources.ScanLaunchConfiguration.Metadata.AWS::CloudFormation::Init", "\n",
-                  "action=/opt/aws/bin/cfn-init --verbose --stack=", {"Ref": "AWS::StackName"}, " --region=", {"Ref": "AWS::Region"}, " --resource=ScanLaunchConfiguration", "\n",
-                  "runas=root", "\n"
-                ]]}
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[cfn-auto-reloader-hook]",
+                      "\n",
+                      "triggers=post.update",
+                      "\n",
+                      "path=Resources.ScanLaunchConfiguration.Metadata.AWS::CloudFormation::Init",
+                      "\n",
+                      "action=/opt/aws/bin/cfn-init --verbose --stack=",
+                      {
+                        "Ref": "AWS::StackName"
+                      },
+                      " --region=",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      " --resource=ScanLaunchConfiguration",
+                      "\n",
+                      "runas=root",
+                      "\n"
+                    ]
+                  ]
+                }
               }
             },
             "commands": {
@@ -414,63 +746,356 @@
                   "enabled": "true",
                   "ensureRunning": "true",
                   "packages": {
-                    "yum": ["awslogs"]
+                    "yum": [
+                      "awslogs"
+                    ]
                   },
-                  "files": ["/etc/awslogs/awslogs.conf"]
+                  "files": [
+                    "/etc/awslogs/awslogs.conf"
+                  ]
                 },
                 "cfn-hup": {
                   "enabled": "true",
                   "ensureRunning": "true",
-                  "files": ["/etc/cfn/cfn-hup.conf", "/etc/cfn/hooks.d/cfn-auto-reloader.conf"]
+                  "files": [
+                    "/etc/cfn/cfn-hup.conf",
+                    "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+                  ]
                 },
                 "s3-virusscan": {
                   "enabled": "true",
                   "ensureRunning": "true",
-                  "files": ["/opt/aws-s3-virusscan-master/s3-virusscan.conf"],
-                  "sources": ["/opt"]
+                  "files": [
+                    "/opt/aws-s3-virusscan-master/s3-virusscan.conf"
+                  ],
+                  "sources": [
+                    "/opt"
+                  ]
                 }
               }
             }
           }
+        },
+        "AWS::CloudFormation::Designer": {
+          "id": "557475e0-22c6-421e-8740-91dfcb5ad63a"
         }
       },
       "Properties": {
-        "KeyName": {"Fn::If": ["HasKeyNameParameter", {"Ref": "KeyNameParameter"}, {"Ref": "AWS::NoValue"}]},
+        "KeyName": {
+          "Fn::If": [
+            "HasKeyNameParameter",
+            {
+              "Ref": "KeyNameParameter"
+            },
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
         "AssociatePublicIpAddress": true,
         "EbsOptimized": false,
-        "BlockDeviceMappings": [{
-          "DeviceName": "/dev/xvda",
-          "Ebs": {
-            "VolumeSize": {"Ref": "BlockDeviceMappingsParameter"},
-            "VolumeType": "gp2"
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvda",
+            "Ebs": {
+              "VolumeSize": {
+                "Ref": "BlockDeviceMappingsParameter"
+              },
+              "VolumeType": "gp2"
+            }
           }
-        }],
-        "IamInstanceProfile": {"Ref": "ScanInstanceProfile"},
-        "ImageId": {"Fn::FindInMap": ["RegionMap", {"Ref": "AWS::Region"}, "AMI"]},
-        "InstanceType": {"Ref": "InstanceTypeParameter"},
-        "SecurityGroups": [{"Ref": "ScanSecurityGroup"}],
-        "UserData": {"Fn::Base64": {"Fn::Join": ["", [
-          "#!/bin/bash -x", "\n",
-          "/opt/aws/bin/cfn-init --verbose --stack=", {"Ref": "AWS::StackName"}, " --region=", {"Ref": "AWS::Region"}, " --resource=ScanLaunchConfiguration", "\n",
-          "/opt/aws/bin/cfn-signal --exit-code=$? --stack=", {"Ref": "AWS::StackName"}, " --region=", {"Ref": "AWS::Region"}, " --resource=ScanAutoScalingGroup", "\n"
-        ]]}}
+        ],
+        "IamInstanceProfile": {
+          "Ref": "ScanInstanceProfile"
+        },
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionMap",
+            {
+              "Ref": "AWS::Region"
+            },
+            "AMI"
+          ]
+        },
+        "InstanceType": {
+          "Ref": "InstanceTypeParameter"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "ScanSecurityGroup"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -x",
+                "\n",
+                "/opt/aws/bin/cfn-init --verbose --stack=",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " --region=",
+                {
+                  "Ref": "AWS::Region"
+                },
+                " --resource=ScanLaunchConfiguration",
+                "\n",
+                "/opt/aws/bin/cfn-signal --exit-code=$? --stack=",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " --region=",
+                {
+                  "Ref": "AWS::Region"
+                },
+                " --resource=ScanAutoScalingGroup",
+                "\n"
+              ]
+            ]
+          }
+        }
       }
     },
     "ScanSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": "S3 VirusScan",
-        "SecurityGroupEgress": [{
-          "IpProtocol": "-1",
-          "CidrIp": "0.0.0.0/0"
-        }],
-        "SecurityGroupIngress": [{
-          "CidrIp": "0.0.0.0/0",
-          "FromPort": 22,
-          "IpProtocol": "tcp",
-          "ToPort": 22
-        }],
-        "VpcId": {"Ref": "VPCParameter"}
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": 22,
+            "IpProtocol": "tcp",
+            "ToPort": 22
+          }
+        ],
+        "VpcId": {
+          "Ref": "VPCParameter"
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "8ec1aa3c-a90d-4e63-aee5-bead3f351d9e"
+        }
+      }
+    }
+  },
+  "Metadata": {
+    "AWS::CloudFormation::Designer": {
+      "8ec1aa3c-a90d-4e63-aee5-bead3f351d9e": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 60,
+          "y": 90
+        },
+        "z": 1,
+        "embeds": []
+      },
+      "5654a679-0b07-45c2-8739-b2b5930be956": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 180,
+          "y": 90
+        },
+        "z": 1,
+        "embeds": []
+      },
+      "634149a5-8605-4dce-8a67-8a5c50d6431b": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 60,
+          "y": 210
+        },
+        "z": 1,
+        "embeds": [],
+        "isrelatedto": [
+          "5654a679-0b07-45c2-8739-b2b5930be956"
+        ]
+      },
+      "f154b662-7e6f-45ae-add4-2d48b973fb2a": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 180,
+          "y": 210
+        },
+        "z": 1,
+        "embeds": [],
+        "isassociatedwith": [
+          "634149a5-8605-4dce-8a67-8a5c50d6431b"
+        ]
+      },
+      "578a6136-48a0-442a-be14-a7610595f02c": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 300,
+          "y": 90
+        },
+        "z": 1,
+        "embeds": []
+      },
+      "ae3c2af6-77aa-4448-ac20-8615d663a7e3": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 300,
+          "y": 210
+        },
+        "z": 1,
+        "embeds": [],
+        "isrelatedto": [
+          "634149a5-8605-4dce-8a67-8a5c50d6431b",
+          "578a6136-48a0-442a-be14-a7610595f02c"
+        ]
+      },
+      "2132ec7d-1e12-4c61-a331-f4201261fc8e": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 60,
+          "y": 330
+        },
+        "z": 1,
+        "embeds": [],
+        "isassociatedwith": [
+          "ae3c2af6-77aa-4448-ac20-8615d663a7e3"
+        ]
+      },
+      "557475e0-22c6-421e-8740-91dfcb5ad63a": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 180,
+          "y": 330
+        },
+        "z": 1,
+        "embeds": [],
+        "ismemberof": [
+          "8ec1aa3c-a90d-4e63-aee5-bead3f351d9e"
+        ],
+        "isrelatedto": [
+          "2132ec7d-1e12-4c61-a331-f4201261fc8e"
+        ]
+      },
+      "a4615704-62d5-4f70-96dd-31c62e3393c7": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 300,
+          "y": 330
+        },
+        "z": 1,
+        "embeds": [],
+        "isassociatedwith": [
+          "557475e0-22c6-421e-8740-91dfcb5ad63a"
+        ]
+      },
+      "8568fa23-e824-49a7-a83e-b44dbf5f88db": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 420,
+          "y": 90
+        },
+        "z": 1,
+        "embeds": [],
+        "isassociatedwith": [
+          "a4615704-62d5-4f70-96dd-31c62e3393c7"
+        ]
+      },
+      "8193889c-000c-41f1-825c-c4c54c620bd4": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 420,
+          "y": 210
+        },
+        "z": 1,
+        "embeds": [],
+        "isrelatedto": [
+          "8568fa23-e824-49a7-a83e-b44dbf5f88db",
+          "634149a5-8605-4dce-8a67-8a5c50d6431b"
+        ]
+      },
+      "53edbab5-9aff-4151-be03-1ac35d9926be": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 420,
+          "y": 330
+        },
+        "z": 1,
+        "embeds": [],
+        "isassociatedwith": [
+          "a4615704-62d5-4f70-96dd-31c62e3393c7"
+        ]
+      },
+      "e3282e5f-085b-4bba-894d-c89fb87d9816": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 60,
+          "y": 450
+        },
+        "z": 1,
+        "embeds": [],
+        "isrelatedto": [
+          "53edbab5-9aff-4151-be03-1ac35d9926be",
+          "634149a5-8605-4dce-8a67-8a5c50d6431b"
+        ]
+      },
+      "ddf6e37b-ec65-4916-b130-d0c34203dd66": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 180,
+          "y": 450
+        },
+        "z": 1,
+        "embeds": [],
+        "isrelatedto": [
+          "5654a679-0b07-45c2-8739-b2b5930be956",
+          "578a6136-48a0-442a-be14-a7610595f02c"
+        ]
       }
     }
   }
