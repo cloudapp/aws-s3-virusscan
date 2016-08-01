@@ -35,7 +35,7 @@ poller.poll do |msg|
         next
       end
 
-      result = system('clamscan /tmp/target')
+      result = system('clamscan --max-filesize=100M --max-scansize=500M /tmp/target')
       if result == 0
         log.debug "s3://#{bucket}/#{key} was scanned without findings"
       elsif result ==2
