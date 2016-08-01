@@ -31,7 +31,7 @@ poller.poll do |msg|
           key: key
         )
       rescue Aws::S3::Errors::NoSuchKey
-        log.debug "s3://#{bucket}/#{key} does no longer exist"
+        log.debug "s3://#{bucket}/#{key} no longer exists. Skipping..."
         next
       end
 
