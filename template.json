@@ -172,7 +172,7 @@
         "Namespace": "AWS/SQS",
         "Period": "60",
         "Statistic": "Sum",
-        "Threshold": "100"
+        "Threshold": "50"
       },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
@@ -339,7 +339,7 @@
         "AutoScalingGroupName": {
           "Ref": "ScanAutoScalingGroup"
         },
-        "Cooldown": "300",
+        "Cooldown": "800",
         "ScalingAdjustment": 3
       },
       "Metadata": {
@@ -351,12 +351,12 @@
     "ScanScaleDown": {
       "Type": "AWS::AutoScaling::ScalingPolicy",
       "Properties": {
-        "AdjustmentType": "ChangeInCapacity",
+        "AdjustmentType": "ExactCapacity",
         "AutoScalingGroupName": {
           "Ref": "ScanAutoScalingGroup"
         },
         "Cooldown": "300",
-        "ScalingAdjustment": -1
+        "ScalingAdjustment": 1
       },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
