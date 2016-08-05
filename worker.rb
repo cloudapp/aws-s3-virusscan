@@ -31,20 +31,20 @@ poller.poll do |msg|
   body['Records'].each do |record|
     bucket = record['s3']['bucket']['name']
     key = URI.decode(record['s3']['object']['key']).gsub('+', ' ')
-    asset = Asset.new(bucket, key, conf['queue'], TEMP_FILE, log)
+    asset = Asset.new(bucket, key, TEMP_FILE, log)
 
     # Set bucket and key for getting a bucket item.
     asset.persist_local
 
     # Scan the asset.
-    if Scanner.virus?(bucket, key, TEMP_FILE)
+    if Scanner.virus?(bucket, key, TEMP_FILE, log)
       message = !!conf['delete'] ? "s3://#{bucket}/#{key} is infected, deleting..." :
                                    "s3://#{bucket}/#{key} is infected"
       log.error(message)
 
       # Delete the asset.
       log.error("s3://#{bucket}/#{key} was deleted")
-      Asset.delete_remote(bucket, key) if !!conf['delete']
+      Asset.delete_remote if !!conf['delete']
 
       # Publish to the SNS topic.
       sns.publish(
