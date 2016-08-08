@@ -1,6 +1,7 @@
 #!/usr/bin/env_ruby
 
-require('digest')
+require 'digest'
+require 'uirusu'
 
 module Scanner
   # Returns true if any of the scanners find a virus; otherwise return false.
@@ -11,7 +12,7 @@ module Scanner
     self.clam_result = clam_scan(target)
     case
     when clam_result == 0
-      log.debug("s3://#{bucket}/#{key} was scanned without findings")
+      log.debug("s3://#{bucket}/#{key} was scanned with clamav without findings")
       log.debug("s3://#{bucket}/#{key} now scanning via virustotal")
     when clam_result == 1
       has_viruses = true

@@ -1,6 +1,6 @@
 #!/usr/bin/env_ruby
 
-require('aws-sdk')
+require 'aws-sdk'
 
 class Asset
 

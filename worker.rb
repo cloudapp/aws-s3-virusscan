@@ -3,7 +3,6 @@
 require 'aws-sdk'
 require 'json'
 require 'syslog/logger'
-require 'uirusu'
 require 'uri'
 require 'yaml'
 
