@@ -43,8 +43,10 @@ poller.poll do |msg|
       log.error(message)
 
       # Delete the asset.
-      log.error("s3://#{bucket}/#{key} was deleted")
-      Asset.delete_remote if !!conf['delete']
+      if !!conf['delete']
+        log.error("s3://#{bucket}/#{key} was deleted")
+        Asset.delete_remote
+      end
 
       # Publish to the SNS topic.
       sns.publish(
