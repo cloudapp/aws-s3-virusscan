@@ -1,7 +1,12 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "S3 VirusScan ( https://cloudonaut.io/s3-virusscan-aws-security/ )",
-  "Parameters": {
+    "Parameters": {
+    "VirusTotalKey": {
+      "Description": "API Key for virus total",
+      "Type": "String",
+      "Default": "hello key"
+    },
     "GitHubArchiveURLParameter": {
       "Description": "Full public URL of GitHub archive zip with app code",
       "Type": "String",
@@ -508,6 +513,9 @@
                 ],
                 "daemons": [
                   "1.2.3"
+                ],
+                "uirusu": [
+                  "1.0.1"
                 ]
               }
             },
@@ -635,6 +643,10 @@
                   "Fn::Join": [
                     "",
                     [
+                      "virustotal: ",
+                      {
+                        "Ref": "VirusTotalKey"
+                      },
                       "delete: ",
                       {
                         "Ref": "DeleteInfectedFilesParameter"
