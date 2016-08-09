@@ -2,30 +2,31 @@
 
 require 'digest'
 require 'uirusu'
+require 'syslog/logger'
+require 'English'
 
-module Scanner
-  # Returns true if any of the scanners find a virus; otherwise return false.
-  # Scan the target and check the result's exit status.
-  def self.virus?(bucket, key, target, log)
-    has_viruses = false
-    log.debug("scanning s3://#{bucket}/#{key} with clamav...")
-    self.clam_result = clam_scan(target)
-    case
-    when clam_result == 0
-      log.debug("s3://#{bucket}/#{key} was scanned with clamav without findings")
-      log.debug("s3://#{bucket}/#{key} now scanning via virustotal")
-    when clam_result == 1
-      has_viruses = true
-    else
-      log.debug("ClamAV had an issue and couldn't/didn't scan the file. Skipped #{key}")
-    end
-    return has_viruses
+# Class for scanning assets for viruses.
+class Scanner
+  def initialize
+    @log = Syslog::Logger
   end
 
-  private
-  def self.clam_scan(target)
+  def virus?(bucket, key, target)
+    self.clam_result = clam_scan(target)
+    if clam_result.zero?
+      @log.debug("s3://#{bucket}/#{key} was scanned with clamav: nothing found")
+      @log.debug("s3://#{bucket}/#{key} now scanning via virustotal")
+    elsif clam_result == 1
+      true
+    else
+      @log.debug("Error: ClamAV couldn't scan the file. Skipped #{key}")
+    end
+    false
+  end
+
+  def clam_scan(target)
+    @log.debug("scanning s3://#{bucket}/#{key} with clamav...")
     system("clamscan --max-filesize=100M --max-scansize=500M #{target}")
-    return $?.exitstatus
+    $CHILD_STATUS.exitstatus
   end
 end
-

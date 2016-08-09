@@ -1,18 +1,18 @@
 #!/usr/bin/env_ruby
 
 require 'aws-sdk'
+require 'syslog/logger'
 
+# Class for asset management.
 class Asset
-
-  def initialize(bucket, key, target, log)
+  def initialize(bucket, key, target)
     @bucket = bucket
     @key = key
 
-    @s3 = Aws::S3::Client.new()
+    @s3 = Aws::S3::Client.new
     @target = target
 
-    # This seems dirty.
-    @log = log
+    @log = Syslog::Logger.new('s3-virusscan')
   end
 
   def persist_local
@@ -27,11 +27,9 @@ class Asset
 
   # Delete the asset in s3.
   def delete_remote
-    begin
-      @s3.delete_object(bucket: @bucket, key: @key)
-    rescue Exception => ex
-      @log.error("Caught #{ex.class} error calling delete_object on #{@key}. De-queueing anyway.")
-    end
+    @s3.delete_object(bucket: @bucket, key: @key)
+  rescue StandardError => ex
+    @log.error("Caught #{ex.class} error calling delete_object on #{@key}.")
   end
 
   def delete_local
